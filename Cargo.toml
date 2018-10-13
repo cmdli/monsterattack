@@ -1,0 +1,6 @@
+[package]
+name = "monsterattack"
+version = "0.1.0"
+authors = ["Chris de la Iglesia <christopher.delaiglesia@gmail.com>"]
+
+[dependencies]
