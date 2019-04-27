@@ -1,80 +1,27 @@
 // Chris de la Iglesia
 
-use rand::prelude::*;
+extern crate rand;
+//extern crate serde;
+//extern crate serde_json;
 
-/*use std::io::prelude::*;
+use serde::Serialize;
+
 use std::fs::File;
+use std::io::prelude::*;
+use std::io::BufReader;
+use std::env;
 
-fn read_file(path: &str) -> String {
-    let mut contents = String::new();
-    let mut file = match File::open(path) {
-        Ok(file) => file,
-        Err(_) => return contents,
-    };
-    match file.read_to_string(&mut contents) {
-        _ => contents
-    }
-}*/
-
-struct BinaryTree {
-    val: i32,
-    left: BinaryTree,
-    right: BinaryTree,
-}
-
-fn generate_binary_tree() -> BinaryTree {
-    let mut root = BinaryTree{}
-    let mut depth = rand::thread_rng().gen() % 5;
-    let mut node = &root;
-    while depth > 0 {
-        let new_node = BinaryTree{};
-        if rand::thread_rng().gen_bool() {
-            node.left = new_node;
-        } else {
-            node.right = new_node;
-        }
-        node = new_node;
-        depth--;
-    }
-    let val = rand::thread_rng().gen() % 1000;
-    node.val = val;
-    return root;
-}
-
-fn first_word(s: &String) -> &str {
-    let bytes = s.as_bytes();
-    for (i, &item) in bytes.iter().enumerate() {
-        if item == b' ' {
-            return &s[0..i];
-        }
-    }
-    &s[..]
-}
-
-fn second_word(s: &String) -> &str {
-    let mut start = s.len() + 1;
-    let bytes = s.as_bytes();
-    for (i, &item) in bytes.iter().enumerate() {
-        if item == b' ' {
-            if start > s.len() {
-                start = i;
-            } else {
-                return &s[start..i];
-            }
-        }
-    }
-    if start <= s.len() {
-        return &s[start..];
-    } else {
-        return &s[..];
-    }
-}
-
-fn main() {
-    let mut string = String::from("hello!");
-    string.push_str(" world!");
-
-    println!("{} | {} | {}", string, first_word(&string), second_word(&string));
-    //println!("{}", read_file("Cargo.lock"))
-    println!("{:?}", generate_binary_tree());
+fn main() -> std::io::Result<()> {
+    let args: Vec<String> = env::args().collect();
+    println!("Args: {:?}", args);
+    //let search_string = &args[1];
+    let mut file = File::open(&args[1])?;
+    let mut file = BufReader::new(file);
+    let mut content = String::new();
+    file.read_to_string(&mut content)?;
+    println!("Content: {}", content);
+    let tokens = monsterattack::tokenize(&content);
+    println!("Tokens: {:?}", tokens);
+    monsterattack::parse_json(&content).expect("Failed to parse");
+    Ok(())
 }

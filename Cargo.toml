@@ -4,4 +4,6 @@ version = "0.1.0"
 authors = ["Chris de la Iglesia <christopher.delaiglesia@gmail.com>"]
 
 [dependencies]
-rand = "0.3.14"
+rand = "0.6.5"
+serde = "1.0.90"
+serde_json = "1.0"
