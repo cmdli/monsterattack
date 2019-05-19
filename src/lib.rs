@@ -4,10 +4,13 @@ extern crate serde;
 extern crate rand;
 
 use rand::prelude::*;
-use rand::{thread_rng, Rng};
+use rand::Rng;
 use std::vec::Vec;
 use std::result::Result;
 use serde::Deserialize;
+use std::fs::File;
+use std::io::prelude::*;
+use std::io::BufReader;
 
 #[derive(Deserialize, Debug)]
 pub struct Attack {
@@ -44,14 +47,38 @@ pub struct StatBlock {
 }
 
 impl StatBlock {
-    pub fn from_str(string: &str) -> Result<StatBlock,serde_json::error::Error> {
-        return serde_json::from_str(string);
+    pub fn from_str(string: &str) -> Result<StatBlock,&'static str> {
+        match serde_json::from_str(string) {
+            Ok(x) => Ok(x),
+            Err(_) => Err("Could not parse json"),
+        }
+    }
+    
+    pub fn from_file(filename: &str) -> Result<StatBlock,&'static str> {
+        let mut content = String::new();
+        let file = match File::open(filename) {
+            Ok(x) => x,
+            Err(_) => {
+                return Err("Could not open file");
+            }
+        };
+        let mut file_reader = BufReader::new(file);
+        match file_reader.read_to_string(&mut content) {
+            Err(_) => {
+                return Err("Could not read file contents");
+            }
+            Ok(x) => x,
+        };
+        match StatBlock::from_str(&content) {
+            Ok(x) => Ok(x),
+            Err(x) => Err(x),
+        }
     }
 }
 
 fn roll_dice(size: i64, num: i64, rng: &mut ThreadRng) -> i64 {
     let mut total = 0;
-    for i in (0..num) {
+    for _ in 0..num {
         total += rng.gen_range(1,size);
     }
     total
@@ -73,46 +100,34 @@ fn damage(attack: &Attack, rng: &mut ThreadRng) -> i64 {
     dmg
 }
 
+fn attack(attacker: &StatBlock, defender: &StatBlock, rng: &mut ThreadRng) -> i64 {
+    let attack = attacker.attacks.choose(rng).unwrap();
+    if hits(attack, defender, rng) {
+        let dmg = damage(attack, rng);
+        println!("{} does {} damage from {}", attacker.name, dmg, attack.name);
+        dmg
+    } else {
+        println!("{} misses with {}", attacker.name, attack.name);
+        0
+    }
+}
+
 pub fn fight(creature1: &StatBlock, creature2: &StatBlock) -> Option<String> {
-    let mut rng = rand::thread_rng();
-    let attack1 = match creature1.attacks.first() {
-        Some(x) => {
-            x
-        }
-        None => {
-            return None;
-        }
-    };
-    let attack2 = match creature2.attacks.first() {
-        Some(x) => x,
-        None => {return None;}
-    };
+    let mut thread_rng = rand::thread_rng();
+    let rng = &mut thread_rng;
     let mut creature1dmg = 0;
     let mut creature2dmg = 0;
     loop {
         if creature1dmg >= creature1.max_hp {
-            println!("Creature 2 won!");
+            println!("{} won!", creature2.name);
             break;
         }
-        if hits(attack1, creature2, &mut rng) {
-            let dmg = damage(attack1, &mut rng);
-            println!("{} (1) does {} damage from {}", creature1.name, dmg, attack1.name);
-            creature2dmg += dmg;
-        } else {
-            println!("{} (1) misses with {}", creature1.name, attack1.name);
-        }
-        
+        creature2dmg += attack(creature1, creature2, rng);
         if creature2dmg >= creature2.max_hp {
-            println!("Creature 1 won!");
+            println!("{} won!", creature1.name);
             break;
         }
-        if hits(attack2, creature2, &mut rng) {
-            let dmg = damage(attack1, &mut rng);
-            println!("{} (2) does {} damage from {}", creature2.name, dmg, attack2.name);
-            creature1dmg += dmg;
-        } else {
-            println!("{} (2) misses with {}", creature2.name, attack2.name);
-        }
+        creature1dmg += attack(creature2, creature1, rng);
     }
     Some(String::from("Done"))
 }
