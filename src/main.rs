@@ -6,7 +6,7 @@ extern crate serde_json;
 
 use std::env;
 
-fn main() -> Result<(),String> {
+fn main() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
     let creature1filename = &args[1];
     let creature2filename = &args[2];

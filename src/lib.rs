@@ -1,16 +1,16 @@
 // Chris de la Iglesia, 2019
 
-extern crate serde;
 extern crate rand;
+extern crate serde;
 
 use rand::prelude::*;
 use rand::Rng;
-use std::vec::Vec;
-use std::result::Result;
 use serde::Deserialize;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
+use std::result::Result;
+use std::vec::Vec;
 
 #[derive(Deserialize, Debug)]
 pub struct Attack {
@@ -47,14 +47,14 @@ pub struct StatBlock {
 }
 
 impl StatBlock {
-    pub fn from_str(string: &str) -> Result<StatBlock,&'static str> {
+    pub fn from_str(string: &str) -> Result<StatBlock, &'static str> {
         match serde_json::from_str(string) {
             Ok(x) => Ok(x),
             Err(_) => Err("Could not parse json"),
         }
     }
-    
-    pub fn from_file(filename: &str) -> Result<StatBlock,&'static str> {
+
+    pub fn from_file(filename: &str) -> Result<StatBlock, &'static str> {
         let mut content = String::new();
         let file = match File::open(filename) {
             Ok(x) => x,
@@ -69,27 +69,23 @@ impl StatBlock {
             }
             Ok(x) => x,
         };
-        match StatBlock::from_str(&content) {
-            Ok(x) => Ok(x),
-            Err(x) => Err(x),
-        }
+        StatBlock::from_str(&content)
     }
 }
 
 fn roll_dice(size: i64, num: i64, rng: &mut ThreadRng) -> i64 {
     let mut total = 0;
     for _ in 0..num {
-        total += rng.gen_range(1,size);
+        total += rng.gen_range(1, size);
     }
     total
 }
 
 fn hits(attack: &Attack, creature: &StatBlock, rng: &mut ThreadRng) -> bool {
-    rng.gen_range(1,21) + attack.to_hit >= creature.armor
+    rng.gen_range(1, 21) + attack.to_hit >= creature.armor
 }
 
 fn damage(attack: &Attack, rng: &mut ThreadRng) -> i64 {
-    // TODO: add in dice rolls
     let mut dmg = attack.base_damage;
     dmg += roll_dice(4, attack.num_d4, rng);
     dmg += roll_dice(6, attack.num_d6, rng);
