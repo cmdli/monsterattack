@@ -6,13 +6,14 @@ extern crate serde;
 use rand::prelude::*;
 use rand::Rng;
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
 use std::result::Result;
 use std::vec::Vec;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Attack {
     #[serde(default)]
     name: String,
@@ -34,7 +35,7 @@ pub struct Attack {
     num_d20: i64,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
 pub struct StatBlock {
     #[serde(default)]
     name: String,
@@ -43,7 +44,17 @@ pub struct StatBlock {
     #[serde(default)]
     armor: i64,
     #[serde(default)]
+    num_attacks: i64,
+    #[serde(default)]
     attacks: Vec<Attack>,
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub struct Creature<'a> {
+    id: i64,
+    hp: i64,
+    team: i64,
+    stats: &'a StatBlock,
 }
 
 impl StatBlock {
@@ -97,15 +108,23 @@ fn damage(attack: &Attack, rng: &mut ThreadRng) -> i64 {
 }
 
 fn attack(attacker: &StatBlock, defender: &StatBlock, rng: &mut ThreadRng) -> i64 {
-    let attack = attacker.attacks.choose(rng).unwrap();
-    if hits(attack, defender, rng) {
-        let dmg = damage(attack, rng);
-        println!("{} does {} damage from {}", attacker.name, dmg, attack.name);
-        dmg
+    let num_attacks = if attacker.num_attacks > 0 {
+        attacker.num_attacks
     } else {
-        println!("{} misses with {}", attacker.name, attack.name);
-        0
+        1
+    };
+    let mut total = 0;
+    for _ in 0..num_attacks {
+        let attack = attacker.attacks.choose(rng).unwrap();
+        if hits(attack, defender, rng) {
+            let dmg = damage(attack, rng);
+            println!("{} does {} damage from {}", attacker.name, dmg, attack.name);
+            total += dmg;
+        } else {
+            println!("{} misses with {}", attacker.name, attack.name);
+        }
     }
+    total
 }
 
 pub fn fight(creature1: &StatBlock, creature2: &StatBlock) -> Option<String> {
@@ -124,6 +143,91 @@ pub fn fight(creature1: &StatBlock, creature2: &StatBlock) -> Option<String> {
             break;
         }
         creature1dmg += attack(creature2, creature1, rng);
+    }
+    Some(String::from("Done"))
+}
+
+pub fn fight_teams(team1_stats: Vec<&StatBlock>, team2_stats: Vec<&StatBlock>) -> Option<String> {
+    println!(
+        "{} fighting {}",
+        team1_stats
+            .iter()
+            .map(|&x| x.name.clone())
+            .collect::<Vec<String>>()
+            .join(", "),
+        team2_stats
+            .iter()
+            .map(|&x| x.name.clone())
+            .collect::<Vec<String>>()
+            .join(", ")
+    );
+    let mut thread_rng = rand::thread_rng();
+    let rng = &mut thread_rng;
+
+    let mut creatures: Vec<Creature> = Vec::new();
+    let mut team1: Vec<Creature> = Vec::new();
+    let mut team2: Vec<Creature> = Vec::new();
+    let mut id = 0;
+    for stat in &team1_stats {
+        let creature = Creature {
+            id: id,
+            hp: stat.max_hp,
+            team: 1,
+            stats: stat,
+        };
+        team1.push(creature.clone());
+        creatures.push(creature.clone());
+        id += 1;
+    }
+    for stat in &team2_stats {
+        let creature = Creature {
+            id: id,
+            hp: stat.max_hp,
+            team: 2,
+            stats: stat,
+        };
+        creatures.push(creature.clone());
+        team2.push(creature.clone());
+        id += 1;
+    }
+    let len = creatures.len();
+    let mut i = 0;
+    let mut dead = (0, 0);
+    loop {
+        if dead.0 == team1.len() || dead.1 == team2.len() {
+            break;
+        }
+        i = (i + 1) % len;
+        let creatures_mut = &mut creatures;
+        let damage;
+        let target;
+        {
+            let creature = creatures_mut.get_mut(i).unwrap();
+            if creature.hp <= 0 {
+                continue;
+            }
+            let other_team = if creature.team == 1 { &team2 } else { &team1 };
+            target = other_team.choose(rng).unwrap();
+            damage = attack(creature.stats, target.stats, rng);
+        }
+        for creature in creatures_mut.iter_mut() {
+            if creature.id == target.id {
+                creature.hp -= damage;
+                if creature.hp <= 0 {
+                    println!("{} ({}) died!", creature.stats.name, creature.id);
+                    dead = if creature.team == 1 {
+                        (dead.0 + 1, dead.1)
+                    } else {
+                        (dead.0, dead.1 + 1)
+                    };
+                }
+            }
+        }
+    }
+    if dead.0 == team1.len() {
+        println!("Team 2 won!");
+    } else if dead.1 == team2.len() {
+        println!("Team 1 won!");
     }
     Some(String::from("Done"))
 }
