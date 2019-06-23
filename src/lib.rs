@@ -161,17 +161,20 @@ pub fn fight(creature1_stats: &StatBlock, creature2_stats: &StatBlock) -> Option
     Some(String::from("Done"))
 }
 
-pub fn fight_teams(team1_stats: Vec<&StatBlock>, team2_stats: Vec<&StatBlock>) -> Option<String> {
+pub fn fight_teams<'a>(
+    team1: &mut Vec<Creature<'a>>,
+    team2: &mut Vec<Creature<'a>>,
+) -> Option<String> {
     println!(
         "{} fighting {}",
-        team1_stats
+        team1
             .iter()
-            .map(|&x| x.name.clone())
+            .map(|x| x.stats.name.clone())
             .collect::<Vec<String>>()
             .join(", "),
-        team2_stats
+        team2
             .iter()
-            .map(|&x| x.name.clone())
+            .map(|x| x.stats.name.clone())
             .collect::<Vec<String>>()
             .join(", ")
     );
@@ -179,20 +182,11 @@ pub fn fight_teams(team1_stats: Vec<&StatBlock>, team2_stats: Vec<&StatBlock>) -
     let rng = &mut thread_rng;
 
     let mut creatures: Vec<Creature> = Vec::new();
-    let mut team1: Vec<Creature> = Vec::new();
-    let mut team2: Vec<Creature> = Vec::new();
-    let mut id = 0;
-    for stat in &team1_stats {
-        let creature = Creature::new(stat, 1, id);
-        team1.push(creature.clone());
+    for creature in team1.iter() {
         creatures.push(creature.clone());
-        id += 1;
     }
-    for stat in &team2_stats {
-        let creature = Creature::new(stat, 2, id);
+    for creature in team2.iter() {
         creatures.push(creature.clone());
-        team2.push(creature.clone());
-        id += 1;
     }
     let len = creatures.len();
     let mut i = 0;
