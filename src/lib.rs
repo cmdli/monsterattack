@@ -164,7 +164,7 @@ pub fn fight(creature1_stats: &StatBlock, creature2_stats: &StatBlock) -> Option
 pub fn fight_teams<'a>(
     team1: &mut Vec<Creature<'a>>,
     team2: &mut Vec<Creature<'a>>,
-) -> Option<String> {
+) -> Option<i64> {
     println!(
         "{} fighting {}",
         team1
@@ -224,9 +224,12 @@ pub fn fight_teams<'a>(
     }
     if dead.0 == team1.len() {
         println!("Team 2 won!");
+        Some(2)
     } else if dead.1 == team2.len() {
         println!("Team 1 won!");
+        Some(1)
+    } else {
+        None
     }
-    Some(String::from("Done"))
 }
 

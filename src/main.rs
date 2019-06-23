@@ -28,10 +28,20 @@ fn main() -> Result<(), String> {
     let creature2filename = &args[3];
     let num_team2 = args[4].parse::<i64>().unwrap();
 
-    let stat1 = monsterattack::StatBlock::from_file(creature1filename)?;
-    let stat2 = monsterattack::StatBlock::from_file(creature2filename)?;
-    let mut team1: Vec<monsterattack::Creature> = create_team(&stat1, num_team1, 1, 0);
-    let mut team2: Vec<monsterattack::Creature> = create_team(&stat2, num_team2, 2, num_team1);
-    monsterattack::fight_teams(&mut team1, &mut team2);
+    let mut team1won = 0;
+    let mut team2won = 0;
+    for _ in 0..10 {
+        let stat1 = monsterattack::StatBlock::from_file(creature1filename)?;
+        let stat2 = monsterattack::StatBlock::from_file(creature2filename)?;
+        let mut team1: Vec<monsterattack::Creature> = create_team(&stat1, num_team1, 1, 0);
+        let mut team2: Vec<monsterattack::Creature> = create_team(&stat2, num_team2, 2, num_team1);
+        match monsterattack::fight_teams(&mut team1, &mut team2) {
+            Some(1) => team1won += 1,
+            Some(2) => team2won += 1,
+            Some(x) => println!("Unexpected team: {}", x),
+            None => println!("Error!"),
+        }
+    }
+    println!("Team 1: {} Team 2: {}", team1won, team2won);
     Ok(())
 }
