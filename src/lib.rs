@@ -84,6 +84,17 @@ impl StatBlock {
     }
 }
 
+impl<'a> Creature<'a> {
+    pub fn new(stats: &'a StatBlock, team: i64, id: i64) -> Creature<'a> {
+        Creature {
+            id: id,
+            hp: stats.max_hp,
+            team: team,
+            stats: stats,
+        }
+    }
+}
+
 fn roll_dice(size: i64, num: i64, rng: &mut ThreadRng) -> i64 {
     let mut total = 0;
     for _ in 0..num {
@@ -107,42 +118,45 @@ fn damage(attack: &Attack, rng: &mut ThreadRng) -> i64 {
     dmg
 }
 
-fn attack(attacker: &StatBlock, defender: &StatBlock, rng: &mut ThreadRng) -> i64 {
-    let num_attacks = if attacker.num_attacks > 0 {
-        attacker.num_attacks
+fn attack(attacker: &Creature, defender: &Creature, rng: &mut ThreadRng) -> i64 {
+    let num_attacks = if attacker.stats.num_attacks > 0 {
+        attacker.stats.num_attacks
     } else {
         1
     };
     let mut total = 0;
     for _ in 0..num_attacks {
-        let attack = attacker.attacks.choose(rng).unwrap();
-        if hits(attack, defender, rng) {
+        let attack = attacker.stats.attacks.choose(rng).unwrap();
+        if hits(attack, defender.stats, rng) {
             let dmg = damage(attack, rng);
-            println!("{} does {} damage from {}", attacker.name, dmg, attack.name);
+            println!(
+                "{} ({}) does {} damage from {}",
+                attacker.stats.name, attacker.id, dmg, attack.name
+            );
             total += dmg;
         } else {
-            println!("{} misses with {}", attacker.name, attack.name);
+            println!("{} misses with {}", attacker.stats.name, attack.name);
         }
     }
     total
 }
 
-pub fn fight(creature1: &StatBlock, creature2: &StatBlock) -> Option<String> {
+pub fn fight(creature1_stats: &StatBlock, creature2_stats: &StatBlock) -> Option<String> {
+    let mut creature1 = Creature::new(creature1_stats, 1, 1);
+    let mut creature2 = Creature::new(creature2_stats, 2, 2);
     let mut thread_rng = rand::thread_rng();
     let rng = &mut thread_rng;
-    let mut creature1dmg = 0;
-    let mut creature2dmg = 0;
     loop {
-        if creature1dmg >= creature1.max_hp {
-            println!("{} won!", creature2.name);
+        if creature1.hp <= 0 {
+            println!("{} won!", creature2.stats.name);
             break;
         }
-        creature2dmg += attack(creature1, creature2, rng);
-        if creature2dmg >= creature2.max_hp {
-            println!("{} won!", creature1.name);
+        creature2.hp -= attack(&creature1, &creature2, rng);
+        if creature2.hp <= 0 {
+            println!("{} won!", creature1.stats.name);
             break;
         }
-        creature1dmg += attack(creature2, creature1, rng);
+        creature1.hp -= attack(&creature2, &creature1, rng);
     }
     Some(String::from("Done"))
 }
@@ -169,23 +183,13 @@ pub fn fight_teams(team1_stats: Vec<&StatBlock>, team2_stats: Vec<&StatBlock>) -
     let mut team2: Vec<Creature> = Vec::new();
     let mut id = 0;
     for stat in &team1_stats {
-        let creature = Creature {
-            id: id,
-            hp: stat.max_hp,
-            team: 1,
-            stats: stat,
-        };
+        let creature = Creature::new(stat, 1, id);
         team1.push(creature.clone());
         creatures.push(creature.clone());
         id += 1;
     }
     for stat in &team2_stats {
-        let creature = Creature {
-            id: id,
-            hp: stat.max_hp,
-            team: 2,
-            stats: stat,
-        };
+        let creature = Creature::new(stat, 2, id);
         creatures.push(creature.clone());
         team2.push(creature.clone());
         id += 1;
@@ -208,7 +212,7 @@ pub fn fight_teams(team1_stats: Vec<&StatBlock>, team2_stats: Vec<&StatBlock>) -
             }
             let other_team = if creature.team == 1 { &team2 } else { &team1 };
             target = other_team.choose(rng).unwrap();
-            damage = attack(creature.stats, target.stats, rng);
+            damage = attack(creature, target, rng);
         }
         for creature in creatures_mut.iter_mut() {
             if creature.id == target.id {
