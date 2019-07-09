@@ -181,51 +181,69 @@ pub fn fight_teams<'a>(
     let mut thread_rng = rand::thread_rng();
     let rng = &mut thread_rng;
 
-    let mut creatures: Vec<Creature> = Vec::new();
-    for creature in team1.iter() {
-        creatures.push(creature.clone());
+    let team1_length = team1.len();
+    let team2_length = team2.len();
+
+    let mut initiative_order: Vec<(usize, usize)> = Vec::new();
+    for i in 0..team1_length {
+        initiative_order.push((1, i));
     }
-    for creature in team2.iter() {
-        creatures.push(creature.clone());
+    for i in 0..team2_length {
+        initiative_order.push((2, i));
     }
-    let len = creatures.len();
+
+    let len = initiative_order.len();
     let mut i = 0;
     let mut dead = (0, 0);
-    loop {
-        if dead.0 == team1.len() || dead.1 == team2.len() {
-            break;
-        }
+    while dead.0 < team1_length && dead.1 < team2_length {
         i = (i + 1) % len;
-        let creatures_mut = &mut creatures;
+        let (team, team_i) = initiative_order.get(i).unwrap();
         let damage;
-        let target;
+        let target_i: usize;
+        let target_team;
         {
-            let creature = creatures_mut.get_mut(i).unwrap();
+            let creature = match *team {
+                1 => team1.get(*team_i).unwrap(),
+                2 => team2.get(*team_i).unwrap(),
+                _ => return None,
+            };
             if creature.hp <= 0 {
                 continue;
             }
-            let other_team = if creature.team == 1 { &team2 } else { &team1 };
-            target = other_team.choose(rng).unwrap();
+            let target: &Creature;
+            if creature.team == 1 {
+                target_i = rng.gen_range(0, team2.len());
+                target = team2.get(target_i).unwrap();
+                target_team = 2;
+            } else {
+                target_i = rng.gen_range(0, team1.len());
+                target = team1.get(target_i).unwrap();
+                target_team = 1;
+            }
             damage = attack(creature, target, rng);
+
         }
-        for creature in creatures_mut.iter_mut() {
-            if creature.id == target.id {
-                creature.hp -= damage;
-                if creature.hp <= 0 {
-                    println!("{} ({}) died!", creature.stats.name, creature.id);
-                    dead = if creature.team == 1 {
-                        (dead.0 + 1, dead.1)
-                    } else {
-                        (dead.0, dead.1 + 1)
-                    };
-                }
+        {
+            let target = if target_team == 1 {
+                team1.get_mut(target_i).unwrap()
+            } else {
+                team2.get_mut(target_i).unwrap()
+            };
+            target.hp -= damage;
+            if target.hp <= 0 {
+                println!("{} ({}) died!", target.stats.name, target.id);
+                if target.team == 1 {
+                    dead.0 += 1;
+                } else {
+                    dead.1 += 1;
+                };
             }
         }
     }
-    if dead.0 == team1.len() {
+    if dead.0 == team1_length {
         println!("Team 2 won!");
         Some(2)
-    } else if dead.1 == team2.len() {
+    } else if dead.1 == team2_length {
         println!("Team 1 won!");
         Some(1)
     } else {
