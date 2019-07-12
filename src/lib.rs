@@ -191,6 +191,7 @@ pub fn fight_teams<'a>(
     for i in 0..team2_length {
         initiative_order.push((2, i));
     }
+    initiative_order.shuffle(rng);
 
     let len = initiative_order.len();
     let mut i = 0;
