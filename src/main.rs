@@ -32,7 +32,7 @@ fn main() -> Result<(), String> {
     let mut team2won = 0;
     let stat1 = monsterattack::StatBlock::from_file(creature1filename)?;
     let stat2 = monsterattack::StatBlock::from_file(creature2filename)?;
-    for _ in 0..10 {
+    for _ in 0..1 {
         let mut team1: Vec<monsterattack::Creature> = create_team(&stat1, num_team1, 1, 0);
         let mut team2: Vec<monsterattack::Creature> = create_team(&stat2, num_team2, 2, num_team1);
         match monsterattack::fight_teams(&mut team1, &mut team2) {

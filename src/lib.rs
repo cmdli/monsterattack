@@ -6,12 +6,12 @@ extern crate serde;
 use rand::prelude::*;
 use rand::Rng;
 use serde::Deserialize;
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
 use std::result::Result;
 use std::vec::Vec;
+use std::collections::HashMap;
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Attack {
@@ -47,6 +47,8 @@ pub struct StatBlock {
     num_attacks: i64,
     #[serde(default)]
     attacks: Vec<Attack>,
+    #[serde(default)]
+    dex_mod: i64,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -141,6 +143,10 @@ fn attack(attacker: &Creature, defender: &Creature, rng: &mut ThreadRng) -> i64 
     total
 }
 
+fn roll_initiative(creature: &Creature, rng: &mut ThreadRng) -> i64 {
+    return roll_dice(20, 1, rng) + creature.stats.dex_mod;
+}
+
 pub fn fight(creature1_stats: &StatBlock, creature2_stats: &StatBlock) -> Option<String> {
     let mut creature1 = Creature::new(creature1_stats, 1, 1);
     let mut creature2 = Creature::new(creature2_stats, 2, 2);
@@ -184,14 +190,30 @@ pub fn fight_teams<'a>(
     let team1_length = team1.len();
     let team2_length = team2.len();
 
+    let mut initiative_rolls = HashMap::new();
     let mut initiative_order: Vec<(usize, usize)> = Vec::new();
     for i in 0..team1_length {
+        initiative_rolls.insert((1,i), roll_initiative(team1.get(i).unwrap(), rng));
         initiative_order.push((1, i));
     }
     for i in 0..team2_length {
+        initiative_rolls.insert((2, i), roll_initiative(team2.get(i).unwrap(), rng));
         initiative_order.push((2, i));
     }
-    initiative_order.shuffle(rng);
+    initiative_order.sort_by_key(|value| initiative_rolls.get(value).unwrap());
+    println!("Fight order: {}", 
+        initiative_order.iter()
+            .map(|value| {
+                let team = value.0;
+                let index = value.1;
+                if team == 1 {
+                    team1.get(index).unwrap().stats.name.clone()
+                } else {
+                    team2.get(index).unwrap().stats.name.clone()
+                }
+            })
+            .collect::<Vec<String>>()
+            .join(", "));
 
     let len = initiative_order.len();
     let mut i = 0;
