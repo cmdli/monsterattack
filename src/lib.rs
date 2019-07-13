@@ -6,12 +6,12 @@ extern crate serde;
 use rand::prelude::*;
 use rand::Rng;
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
 use std::result::Result;
 use std::vec::Vec;
-use std::collections::HashMap;
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Attack {
@@ -193,7 +193,7 @@ pub fn fight_teams<'a>(
     let mut initiative_rolls = HashMap::new();
     let mut initiative_order: Vec<(usize, usize)> = Vec::new();
     for i in 0..team1_length {
-        initiative_rolls.insert((1,i), roll_initiative(team1.get(i).unwrap(), rng));
+        initiative_rolls.insert((1, i), roll_initiative(team1.get(i).unwrap(), rng));
         initiative_order.push((1, i));
     }
     for i in 0..team2_length {
@@ -201,8 +201,10 @@ pub fn fight_teams<'a>(
         initiative_order.push((2, i));
     }
     initiative_order.sort_by_key(|value| initiative_rolls.get(value).unwrap());
-    println!("Fight order: {}", 
-        initiative_order.iter()
+    println!(
+        "Fight order: {}",
+        initiative_order
+            .iter()
             .map(|value| {
                 let team = value.0;
                 let index = value.1;
@@ -213,7 +215,8 @@ pub fn fight_teams<'a>(
                 }
             })
             .collect::<Vec<String>>()
-            .join(", "));
+            .join(", ")
+    );
 
     let len = initiative_order.len();
     let mut i = 0;
@@ -244,7 +247,6 @@ pub fn fight_teams<'a>(
                 target_team = 1;
             }
             damage = attack(creature, target, rng);
-
         }
         {
             let target = if target_team == 1 {
@@ -273,4 +275,3 @@ pub fn fight_teams<'a>(
         None
     }
 }
-
