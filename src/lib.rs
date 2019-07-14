@@ -2,17 +2,19 @@
 
 extern crate rand;
 extern crate serde;
+extern crate wasm_bindgen;
 
 use rand::prelude::*;
 use rand::Rng;
 use serde::Deserialize;
+
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
 use std::result::Result;
 use std::vec::Vec;
-
+use wasm_bindgen::prelude::*;
 #[derive(Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Attack {
     #[serde(default)]
@@ -147,7 +149,7 @@ fn roll_initiative(creature: &Creature, rng: &mut ThreadRng) -> i64 {
     return roll_dice(20, 1, rng) + creature.stats.dex_mod;
 }
 
-pub fn fight(creature1_stats: &StatBlock, creature2_stats: &StatBlock) -> Option<String> {
+pub fn fight(creature1_stats: &StatBlock, creature2_stats: &StatBlock) -> Option<i64> {
     let mut creature1 = Creature::new(creature1_stats, 1, 1);
     let mut creature2 = Creature::new(creature2_stats, 2, 2);
     let mut thread_rng = rand::thread_rng();
@@ -164,7 +166,11 @@ pub fn fight(creature1_stats: &StatBlock, creature2_stats: &StatBlock) -> Option
         }
         creature1.hp -= attack(&creature2, &creature1, rng);
     }
-    Some(String::from("Done"))
+    if creature1.hp <= 0 {
+        Some(2)
+    } else {
+        Some(1)
+    }
 }
 
 pub fn fight_teams<'a>(
@@ -274,4 +280,11 @@ pub fn fight_teams<'a>(
     } else {
         None
     }
+}
+
+#[wasm_bindgen]
+pub fn fight_creature(creature1: &str, creature2: &str) -> Option<i64> {
+    let creature1_stats = StatBlock::from_str(creature1).unwrap();
+    let creature2_stats = StatBlock::from_str(creature2).unwrap();
+    fight(&creature1_stats, &creature2_stats)
 }

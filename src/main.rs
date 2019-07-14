@@ -3,6 +3,7 @@
 extern crate rand;
 extern crate serde;
 extern crate serde_json;
+extern crate wasm_bindgen;
 
 use std::env;
 
