@@ -9,7 +9,8 @@ To Do
 -[x] Take in params to customize attack
 -[x] Make output look nice
 -[x] Add in initiative rolls
--[ ] Add in rage
+-[x] Add in rage
+-[ ] Set up website running basic attack
 -[ ] Add in reckless attack
 -[ ] Add smarter choice between GWM and not
 -[ ] Add in flanking

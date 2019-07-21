@@ -149,28 +149,25 @@ fn roll_initiative(creature: &Creature, rng: &mut ThreadRng) -> i64 {
     return roll_dice(20, 1, rng) + creature.stats.dex_mod;
 }
 
-pub fn fight(creature1_stats: &StatBlock, creature2_stats: &StatBlock) -> Option<i64> {
+pub fn fight(creature1_stats: &StatBlock, creature2_stats: &StatBlock) -> Vec<String> {
+    let mut output = Vec::new();
     let mut creature1 = Creature::new(creature1_stats, 1, 1);
     let mut creature2 = Creature::new(creature2_stats, 2, 2);
     let mut thread_rng = rand::thread_rng();
     let rng = &mut thread_rng;
     loop {
         if creature1.hp <= 0 {
-            println!("{} won!", creature2.stats.name);
+            output.push(format!("{} won!", creature2.stats.name));
             break;
         }
         creature2.hp -= attack(&creature1, &creature2, rng);
         if creature2.hp <= 0 {
-            println!("{} won!", creature1.stats.name);
+            output.push(format!("{} won!", creature1.stats.name));
             break;
         }
         creature1.hp -= attack(&creature2, &creature1, rng);
     }
-    if creature1.hp <= 0 {
-        Some(2)
-    } else {
-        Some(1)
-    }
+    output
 }
 
 pub fn fight_teams<'a>(
@@ -282,9 +279,28 @@ pub fn fight_teams<'a>(
     }
 }
 
+fn compile_output(lines: Vec<String>) -> String {
+    let mut output = String::new();
+    for s in lines {
+        output.push_str(s.as_str());
+        output.push_str("\n");
+    }
+    output
+}
+
 #[wasm_bindgen]
-pub fn fight_creature(creature1: &str, creature2: &str) -> Option<i64> {
+pub fn fight_creature(creature1: &str, creature2: &str) -> String {
     let creature1_stats = StatBlock::from_str(creature1).unwrap();
     let creature2_stats = StatBlock::from_str(creature2).unwrap();
-    fight(&creature1_stats, &creature2_stats)
+    compile_output(fight(&creature1_stats, &creature2_stats))
+}
+
+#[wasm_bindgen]
+extern "C" {
+    fn alert(s: &str);
+}
+
+#[wasm_bindgen]
+pub fn greet(msg: &str) {
+    alert(&("Message: ".to_owned() + msg));
 }
