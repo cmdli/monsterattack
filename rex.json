@@ -1,15 +1,15 @@
 {
-    "name": "rex",
-    "max_hp": 120,
-    "armor": 17,
-    "num_attacks": 2,
-    "dex_mod": 2,
-    "attacks": [
-        {
-            "name": "greataxe",
-            "to_hit": 7,
-            "base_damage": 5,
-            "num_d12": 1
-        }
-    ]
+  "name": "Rex",
+  "max_hp": 120,
+  "armor": 17,
+  "num_attacks": 2,
+  "dex_mod": 2,
+  "attacks": [
+    {
+      "name": "greataxe",
+      "to_hit": 7,
+      "base_damage": 5,
+      "num_d12": 1
+    }
+  ]
 }

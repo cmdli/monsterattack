@@ -1,11 +1,13 @@
 {
-    "name":"human",
-    "max_hp":10,
-    "armor":15,
-    "attacks": [{
-        "name":"sword",
-        "to_hit":5,
-        "base_damage":2,
-        "num_d6":1
-    }]
+  "name": "human",
+  "max_hp": 10,
+  "armor": 15,
+  "attacks": [
+    {
+      "name": "sword",
+      "to_hit": 5,
+      "base_damage": 2,
+      "num_d6": 1
+    }
+  ]
 }

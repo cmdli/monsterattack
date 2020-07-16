@@ -6,6 +6,7 @@ extern crate wasm_bindgen;
 
 use rand::prelude::*;
 use rand::Rng;
+use rand::seq::SliceRandom;
 use serde::Deserialize;
 
 use std::collections::HashMap;
@@ -145,6 +146,28 @@ fn attack(attacker: &Creature, defender: &Creature, rng: &mut ThreadRng) -> i64 
     total
 }
 
+fn attack_team(attacker: &Creature, team: &mut Vec<Creature>, rng: &mut ThreadRng) -> Option<usize> {
+    let target_i = rng.gen_range(0, team.len());
+    let target = team.get_mut(target_i).unwrap();
+    let damage = attack(attacker, target, rng);
+    target.hp -= damage;
+    if target.hp <= 0 {
+        println!("{} ({}) died!", target.stats.name, target.id);
+        return Some(target_i);
+    }
+    return None;
+}
+
+fn remove_from_initiative_order(initiative_order: &mut Vec<(usize,usize)>, team: usize, team_i: usize) {
+    for i in 0..initiative_order.len() {
+        let (other_team, other_team_i) = initiative_order.get(i).unwrap();
+        if *other_team == team && *other_team_i == team_i {
+            initiative_order.remove(i);
+            break;
+        }
+    }
+}
+
 fn roll_initiative(creature: &Creature, rng: &mut ThreadRng) -> i64 {
     return roll_dice(20, 1, rng) + creature.stats.dex_mod;
 }
@@ -221,58 +244,37 @@ pub fn fight_teams<'a>(
             .join(", ")
     );
 
-    let len = initiative_order.len();
     let mut i = 0;
-    let mut dead = (0, 0);
-    while dead.0 < team1_length && dead.1 < team2_length {
-        i = (i + 1) % len;
+    let mut team1_left = team1.len();
+    let mut team2_left = team2.len();
+    while team1_left > 0 && team2_left > 0 {
+        i = (i + 1) % initiative_order.len();
         let (team, team_i) = initiative_order.get(i).unwrap();
-        let damage;
-        let target_i: usize;
-        let target_team;
-        {
-            let creature = match *team {
-                1 => team1.get(*team_i).unwrap(),
-                2 => team2.get(*team_i).unwrap(),
-                _ => return None,
-            };
-            if creature.hp <= 0 {
-                continue;
+        if *team == 1 {
+            let attacker = team1.get(*team_i).unwrap();
+            match attack_team(attacker, team2, rng) {
+                Some(enemy_i) => {
+                    remove_from_initiative_order(&mut initiative_order, 2, enemy_i); 
+                    team2_left -= 1;
+                },
+                _ => {}
             }
-            let target: &Creature;
-            if creature.team == 1 {
-                target_i = rng.gen_range(0, team2.len());
-                target = team2.get(target_i).unwrap();
-                target_team = 2;
-            } else {
-                target_i = rng.gen_range(0, team1.len());
-                target = team1.get(target_i).unwrap();
-                target_team = 1;
-            }
-            damage = attack(creature, target, rng);
-        }
-        {
-            let target = if target_team == 1 {
-                team1.get_mut(target_i).unwrap()
-            } else {
-                team2.get_mut(target_i).unwrap()
-            };
-            target.hp -= damage;
-            if target.hp <= 0 {
-                println!("{} ({}) died!", target.stats.name, target.id);
-                if target.team == 1 {
-                    dead.0 += 1;
-                } else {
-                    dead.1 += 1;
-                };
+        } else {
+            let attacker = team2.get(*team_i).unwrap();
+            match attack_team(attacker, team1, rng) {
+                Some(enemy_i) => {
+                    remove_from_initiative_order(&mut initiative_order, 1, enemy_i);
+                    team1_left -= 1;
+                },
+                _ => {}
             }
         }
     }
-    if dead.0 == team1_length {
-        println!("Team 2 won!");
-        Some(2)
-    } else if dead.1 == team2_length {
+    if team1_left > 0 {
         println!("Team 1 won!");
+        Some(2)
+    } else if team2_left > 0 {
+        println!("Team 2 won!");
         Some(1)
     } else {
         None

@@ -28,12 +28,16 @@ fn main() -> Result<(), String> {
     let num_team1 = args[2].parse::<i64>().unwrap();
     let creature2filename = &args[3];
     let num_team2 = args[4].parse::<i64>().unwrap();
+    let mut rounds = 1;
+    if args.len() >= 6 {
+        rounds = args[5].parse::<i64>().unwrap();
+    }
 
     let mut team1won = 0;
     let mut team2won = 0;
     let stat1 = monsterattack::StatBlock::from_file(creature1filename)?;
     let stat2 = monsterattack::StatBlock::from_file(creature2filename)?;
-    for _ in 0..1 {
+    for _ in 0..rounds {
         let mut team1: Vec<monsterattack::Creature> = create_team(&stat1, num_team1, 1, 0);
         let mut team2: Vec<monsterattack::Creature> = create_team(&stat2, num_team2, 2, num_team1);
         match monsterattack::fight_teams(&mut team1, &mut team2) {
